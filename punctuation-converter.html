@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标点符号转换工具 - 全角转半角</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        neutral: '#64748B',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+            .shadow-custom {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-dark">
+    <!-- 页面容器 -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 标题区域 -->
+        <header class="text-center mb-10">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-dark mb-3">
+                <i class="fa fa-exchange text-primary mr-2"></i>标点符号转换工具
+            </h1>
+            <p class="text-neutral text-lg">将文章中的全角标点符号转换为半角标点符号</p>
+        </header>
+        
+        <!-- 说明区域 -->
+        <div class="bg-white rounded-lg p-5 shadow-custom mb-8">
+            <h2 class="text-lg font-semibold mb-3 flex items-center">
+                <i class="fa fa-info-circle text-primary mr-2"></i>转换规则
+            </h2>
+            <ul class="list-disc pl-5 space-y-1 text-neutral">
+                <li>文章内容必须全部使用半角标点符号（除了首行的标题）</li>
+                <li>禁止使用任何全角标点符号</li>
+                <li>正确的半角符号：, . ? ! : ; " ' ( ) -</li>
+                <li>错误的全角符号：，。？！：；""''（）—</li>
+                <li>如发现全角标点，立即替换为对应的半角标点</li>
+            </ul>
+        </div>
+        
+        <!-- 主要内容区 -->
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- 输入区域 -->
+            <div class="flex flex-col h-full">
+                <div class="bg-white rounded-t-lg p-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="font-semibold flex items-center">
+                        <i class="fa fa-pencil-square-o text-primary mr-2"></i>输入内容
+                    </h3>
+                    <button id="clearInput" class="text-neutral hover:text-red-500 transition-custom text-sm">
+                        <i class="fa fa-trash-o mr-1"></i>清空
+                    </button>
+                </div>
+                <textarea 
+                    id="inputText" 
+                    class="flex-grow p-4 bg-white border border-gray-200 rounded-b-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none resize-none"
+                    placeholder="请在此输入需要转换的文本内容...&#10;标题会保留全角标点，正文会被转换为半角标点"
+                    rows="15"
+                ></textarea>
+                <div class="mt-4 flex gap-3">
+                    <button id="convertBtn" class="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center">
+                        <i class="fa fa-magic mr-2"></i>开始转换
+                    </button>
+                    <button id="sampleBtn" class="bg-neutral hover:bg-neutral/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center">
+                        <i class="fa fa-file-text-o mr-2"></i>示例文本
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 输出区域 -->
+            <div class="flex flex-col h-full">
+                <div class="bg-white rounded-t-lg p-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="font-semibold flex items-center">
+                        <i class="fa fa-check-square-o text-secondary mr-2"></i>转换结果
+                    </h3>
+                    <button id="copyResult" class="text-neutral hover:text-primary transition-custom text-sm">
+                        <i class="fa fa-copy mr-1"></i>复制结果
+                    </button>
+                </div>
+                <div 
+                    id="outputText" 
+                    class="flex-grow p-4 bg-white border border-gray-200 rounded-b-lg overflow-auto"
+                >
+                    <div class="text-neutral italic">转换后的内容将显示在这里...</div>
+                </div>
+                <div class="mt-4 bg-gray-50 p-3 rounded-lg text-sm">
+                    <div class="flex justify-between">
+                        <div>
+                            <span class="text-neutral">输入字符数：</span>
+                            <span id="inputCharCount" class="font-medium">0</span>
+                        </div>
+                        <div>
+                            <span class="text-neutral">转换符号数：</span>
+                            <span id="convertedCount" class="font-medium text-primary">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 转换对照表 -->
+        <div class="mt-10 bg-white rounded-lg shadow-custom overflow-hidden">
+            <h2 class="text-lg font-semibold p-5 border-b border-gray-100 flex items-center">
+                <i class="fa fa-table text-primary mr-2"></i>全角半角符号对应表
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="py-3 px-4 text-left font-semibold border-b">全角符号</th>
+                            <th class="py-3 px-4 text-left font-semibold border-b">对应的半角符号</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">，</td>
+                            <td class="py-3 px-4 border-b">,</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">。</td>
+                            <td class="py-3 px-4 border-b">.</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">？</td>
+                            <td class="py-3 px-4 border-b">?</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">！</td>
+                            <td class="py-3 px-4 border-b">!</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">：</td>
+                            <td class="py-3 px-4 border-b">:</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">；</td>
+                            <td class="py-3 px-4 border-b">;</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">“”</td>
+                            <td class="py-3 px-4 border-b">""</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">‘’</td>
+                            <td class="py-3 px-4 border-b">''</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">（）</td>
+                            <td class="py-3 px-4 border-b">()</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 border-b">—</td>
+                            <td class="py-3 px-4 border-b">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 页脚 -->
+        <footer class="mt-12 text-center text-neutral text-sm">
+            <p>标点符号转换工具 &copy; 2023 | 精准转换全角至半角符号</p>
+        </footer>
+    </div>
+    
+    <!-- 通知提示框 -->
+    <div id="notification" class="fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-all duration-300 flex items-center">
+        <i id="notificationIcon" class="mr-2"></i>
+        <span id="notificationText"></span>
+    </div>
+
+    <script>
+        // 全角到半角的映射表
+        const fullToHalfMap = {
+            '，': ',',
+            '。': '.',
+            '？': '?',
+            '！': '!',
+            '：': ':',
+            '；': ';',
+            '“': '"',
+            '”': '"',
+            '‘': "'",
+            '’': "'",
+            '（': '(',
+            '）': ')',
+            '—': '-',
+            '～': '~',
+            '｀': '`',
+            '｜': '|',
+            '＿': '_',
+            '＋': '+',
+            '－': '-',
+            '＝': '=',
+            '／': '/',
+            '＼': '\\',
+            '％': '%',
+            '＃': '#',
+            '＠': '@',
+            '＆': '&',
+            '＊': '*',
+            '＜': '<',
+            '＞': '>',
+            '［': '[',
+            '］': ']',
+            '｛': '{',
+            '｝': '}'
+        };
+        
+        // DOM元素
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearInputBtn = document.getElementById('clearInput');
+        const copyResultBtn = document.getElementById('copyResult');
+        const sampleBtn = document.getElementById('sampleBtn');
+        const inputCharCount = document.getElementById('inputCharCount');
+        const convertedCount = document.getElementById('convertedCount');
+        const notification = document.getElementById('notification');
+        const notificationIcon = document.getElementById('notificationIcon');
+        const notificationText = document.getElementById('notificationText');
+        
+        // 更新字符计数
+        inputText.addEventListener('input', () => {
+            inputCharCount.textContent = inputText.value.length;
+        });
+        
+        // 显示通知
+        function showNotification(message, isSuccess = true) {
+            notificationText.textContent = message;
+            notificationIcon.className = isSuccess ? 'fa fa-check-circle text-green-500 mr-2' : 'fa fa-exclamation-circle text-red-500 mr-2';
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-0 transition-all duration-300 flex items-center ${isSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`;
+            
+            setTimeout(() => {
+                notification.className = 'fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-all duration-300 flex items-center';
+            }, 3000);
+        }
+        
+        // 转换函数 - 保留标题的全角符号，转换正文的全角符号
+        function convertPunctuation(text) {
+            if (!text.trim()) return { result: '', count: 0 };
+            
+            let convertedCount = 0;
+            // 按换行分割文本，第一行为标题，其余为正文
+            const lines = text.split('\n');
+            if (lines.length === 0) return { result: '', count: 0 };
+            
+            // 标题不转换
+            const title = lines[0];
+            // 正文需要转换
+            const contentLines = lines.slice(1);
+            
+            // 转换正文
+            const convertedContentLines = contentLines.map(line => {
+                let convertedLine = '';
+                for (const char of line) {
+                    if (fullToHalfMap.hasOwnProperty(char)) {
+                        convertedLine += fullToHalfMap[char];
+                        convertedCount++;
+                    } else {
+                        convertedLine += char;
+                    }
+                }
+                return convertedLine;
+            });
+            
+            // 合并结果
+            const result = [title, ...convertedContentLines].join('\n');
+            return { result, count: convertedCount };
+        }
+        
+        // 转换按钮点击事件
+        convertBtn.addEventListener('click', () => {
+            const text = inputText.value;
+            if (!text.trim()) {
+                showNotification('请输入需要转换的文本', false);
+                return;
+            }
+            
+            const { result, count } = convertPunctuation(text);
+            outputText.innerHTML = result.replace(/\n/g, '<br>'); // 保留换行
+            convertedCount.textContent = count;
+            
+            // 添加转换成功的动画效果
+            outputText.classList.add('bg-green-50/50');
+            setTimeout(() => {
+                outputText.classList.remove('bg-green-50/50');
+            }, 500);
+            
+            showNotification(`转换完成，共替换了 ${count} 个符号`);
+        });
+        
+        // 清空输入按钮点击事件
+        clearInputBtn.addEventListener('click', () => {
+            inputText.value = '';
+            outputText.innerHTML = '<div class="text-neutral italic">转换后的内容将显示在这里...</div>';
+            inputCharCount.textContent = '0';
+            convertedCount.textContent = '0';
+            showNotification('已清空输入内容');
+        });
+        
+        // 复制结果按钮点击事件
+        copyResultBtn.addEventListener('click', () => {
+            // 从原始输入获取转换前的文本，重新转换为纯文本格式（不带HTML）
+            const text = inputText.value;
+            if (!text.trim()) {
+                showNotification('没有可复制的内容', false);
+                return;
+            }
+            
+            const { result } = convertPunctuation(text);
+            
+            // 复制到剪贴板
+            navigator.clipboard.writeText(result).then(() => {
+                showNotification('转换结果已复制到剪贴板');
+            }).catch(err => {
+                showNotification('复制失败，请手动复制', false);
+                console.error('复制失败:', err);
+            });
+        });
+        
+        // 示例文本按钮点击事件
+        sampleBtn.addEventListener('click', () => {
+            const sampleText = `示例文章：全角符号转换演示
+这是一篇包含全角符号的示例文章，用于测试转换功能。
+首先，这是一个全角逗号：，应该转换为半角逗号：,
+这是一个全角句号：。应该转换为半角句号：.
+这是一个全角问号：？应该转换为半角问号：?
+这是一个全角感叹号：！应该转换为半角感叹号：!
+这是一个全角冒号：：应该转换为半角冒号：:
+这是一个全角分号：；应该转换为半角分号：;
+这是全角双引号：“”应该转换为半角双引号：""
+这是全角单引号：‘’应该转换为半角单引号：''
+这是全角括号：（）应该转换为半角括号：()
+这是全角破折号：—应该转换为半角破折号：-
+
+转换规则是：标题保留全角符号，正文全部转换为半角符号。`;
+            
+            inputText.value = sampleText;
+            inputCharCount.textContent = sampleText.length;
+            
+            // 自动触发转换
+            const { result, count } = convertPunctuation(sampleText);
+            outputText.innerHTML = result.replace(/\n/g, '<br>');
+            convertedCount.textContent = count;
+            
+            showNotification('已加载示例文本');
+        });
+        
+        // 初始化页面
+        window.addEventListener('load', () => {
+            inputCharCount.textContent = '0';
+            convertedCount.textContent = '0';
+        });
+    </script>
+</body>
+</html>
